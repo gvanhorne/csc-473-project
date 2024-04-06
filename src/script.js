@@ -23,7 +23,13 @@ scene.add(pointLight)
 const particleGeometry = new THREE.SphereGeometry( 0.02, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
+
 const numParticles = 100;
+
+const positions = new Float32Array(numParticles * 3); // Store positions
+const velocities = new Float32Array(numParticles * 3); // Store velocities
+const masses = new Float32Array(numParticles); // Store masses
+
 for (let i = 0; i < numParticles; i++) {
     const particle = new THREE.Mesh(particleGeometry, particleMaterial);
 
@@ -31,6 +37,18 @@ for (let i = 0; i < numParticles; i++) {
     particle.position.x = Math.random() * 4 - 2;
     particle.position.y = Math.random() * 4 - 2;
     particle.position.z = Math.random() * 4 - 2;
+
+    // Randomize velocity
+    const vx = Math.random() * 0.2 - 0.01;
+    const vy = Math.random() * 0.2 - 0.01;
+    const vz = Math.random() * 0.2 - 0.01;
+
+    velocities[i * 3] = vx;
+    velocities[i * 3 + 1] = vy;
+    velocities[i * 3 + 2] = vz;
+
+    // Assign mass (you can randomize this as well)
+    masses[i] = Math.random() * 0.5 + 0.1; // Random mass between 0.1 and 0.6
 
     // Add particle to the scene
     scene.add(particle);
@@ -81,27 +99,52 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-/**
- * Animate
- */
-
+// Animate
 const clock = new THREE.Clock()
 
 const tick = () => {
+    const deltaTime = clock.getDelta();
+    // Loop through each particle
+    for (let i = 0; i < numParticles; i++) {
+        // Get current position and velocity of the particle
+        const particle = scene.children[i + 1]; // Adding 1 because the first child is the light
+        const position = particle.position;
+        const velocity = {
+            x: velocities[i * 3],
+            y: velocities[i * 3 + 1],
+            z: velocities[i * 3 + 2]
+        };
 
-    const elapsedTime = clock.getElapsedTime()
+        // Update position based on velocity
+        position.x += velocity.x * deltaTime;
+        position.y += velocity.y * deltaTime;
+        position.z += velocity.z * deltaTime;
 
-    // Update objects
-    // sphere.rotation.y = 0.5 * elapsedTime
+        // Check for boundary collision and reverse velocity if needed
+        if (position.x < -2 || position.x > 2) {
+            velocities[i * 3] *= -1;
+        }
+        if (position.y < -2 || position.y > 2) {
+            velocities[i * 3 + 1] *= -1;
+        }
+        if (position.z < -2 || position.z > 2) {
+            velocities[i * 3 + 2] *= -1;
+        }
+
+        // Update positions array for later use (optional)
+        positions[i * 3] = position.x;
+        positions[i * 3 + 1] = position.y;
+        positions[i * 3 + 2] = position.z;
+    }
 
     // Update Orbital Controls
-    controls.update()
+    controls.update();
 
     // Render
-    renderer.render(scene, camera)
+    renderer.render(scene, camera);
 
     // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
+    window.requestAnimationFrame(tick);
 }
 
 tick()
