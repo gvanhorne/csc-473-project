@@ -12,25 +12,29 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
-// Objects
-const geometry = new THREE.TorusGeometry( .7, .2, 16, 100 );
-
-// Materials
-
-const material = new THREE.MeshBasicMaterial()
-material.color = new THREE.Color(0xff0000)
-
-// Mesh
-const sphere = new THREE.Mesh(geometry,material)
-scene.add(sphere)
-
 // Lights
-
 const pointLight = new THREE.PointLight(0xffffff, 0.1)
 pointLight.position.x = 2
 pointLight.position.y = 3
 pointLight.position.z = 4
 scene.add(pointLight)
+
+// Add particles
+const particleGeometry = new THREE.SphereGeometry( 0.02, 32 ); // Example particle geometry
+const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
+
+const numParticles = 100;
+for (let i = 0; i < numParticles; i++) {
+    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+
+    // Randomize position
+    particle.position.x = Math.random() * 4 - 2;
+    particle.position.y = Math.random() * 4 - 2;
+    particle.position.z = Math.random() * 4 - 2;
+
+    // Add particle to the scene
+    scene.add(particle);
+}
 
 /**
  * Sizes
@@ -40,8 +44,7 @@ const sizes = {
     height: window.innerHeight
 }
 
-window.addEventListener('resize', () =>
-{
+window.addEventListener('resize', () => {
     // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
@@ -84,13 +87,12 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 const clock = new THREE.Clock()
 
-const tick = () =>
-{
+const tick = () => {
 
     const elapsedTime = clock.getElapsedTime()
 
     // Update objects
-    sphere.rotation.y = .5 * elapsedTime
+    // sphere.rotation.y = 0.5 * elapsedTime
 
     // Update Orbital Controls
     controls.update()
