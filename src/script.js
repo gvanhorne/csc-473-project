@@ -2,12 +2,15 @@ import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
+import * as d3o from 'd3-octree'
 
 // Debug
 const gui = new dat.GUI()
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
+
+let tree = d3o.octree()
 
 // Scene
 const scene = new THREE.Scene()
@@ -23,14 +26,12 @@ scene.add(pointLight)
 const particleGeometry = new THREE.SphereGeometry( 0.02, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
+const n = 200;
+const positions = new Float32Array(n * 3); // Store positions
+const velocities = new Float32Array(n * 3); // Store velocities
+const masses = new Float32Array(n); // Store masses
 
-const numParticles = 100;
-
-const positions = new Float32Array(numParticles * 3); // Store positions
-const velocities = new Float32Array(numParticles * 3); // Store velocities
-const masses = new Float32Array(numParticles); // Store masses
-
-for (let i = 0; i < numParticles; i++) {
+for (let i = 0; i < n; i++) {
     const particle = new THREE.Mesh(particleGeometry, particleMaterial);
 
     // Randomize position
@@ -52,6 +53,7 @@ for (let i = 0; i < numParticles; i++) {
 
     // Add particle to the scene
     scene.add(particle);
+    tree.add([particle.position.x, particle.position.y, particle.position.z])
 }
 
 /**
@@ -103,9 +105,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const clock = new THREE.Clock()
 
 const tick = () => {
+    tree = d3o.octree()
     const deltaTime = clock.getDelta();
     // Loop through each particle
-    for (let i = 0; i < numParticles; i++) {
+    for (let i = 0; i < n; i++) {
         // Get current position and velocity of the particle
         const particle = scene.children[i + 1]; // Adding 1 because the first child is the light
         const position = particle.position;
@@ -135,6 +138,7 @@ const tick = () => {
         positions[i * 3] = position.x;
         positions[i * 3 + 1] = position.y;
         positions[i * 3 + 2] = position.z;
+        tree.add([particle.position.x, particle.position.y, particle.position.z])
     }
 
     // Update Orbital Controls
