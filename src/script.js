@@ -22,10 +22,10 @@ pointLight.position.set(2, 3, 4)
 scene.add(pointLight)
 
 // Add particles
-const particleGeometry = new THREE.SphereGeometry( 0.01, 32 ); // Example particle geometry
+const particleGeometry = new THREE.SphereGeometry( 0.05, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
-const n = 200;
+const n = 100;
 const particles = []
 const positions = [] // Store positions
 const velocities = [] // Store velocities
@@ -105,14 +105,6 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-function calculateDistance(position1, position2) {
-    const dx = position2.x - position1.x;
-    const dy = position2.y - position1.y;
-    const dz = position2.z - position1.z;
-
-    return Math.sqrt(dx*dx + dy*dy + dz*dz);
-}
-
 // Animate
 const clock = new THREE.Clock()
 const tick = () => {
@@ -124,39 +116,41 @@ const tick = () => {
         const particle = particles[i];
         const position = particle.position;
         const mass = masses[i];
-        let force;
+        let force = new THREE.Vector3();
         const velocity_prev = {
             x: velocities[i].x,
             y: velocities[i].y,
             z: velocities[i].z
         };
-        // for (let j = 0; j < n; j++) {
-        //     if (j == i) {
-        //         continue
-        //     }
-        //     const other_mass = masses[j];
-        //     const other_position = scene.children[j+2].position;
-        //     const distance = calculateDistance(position, other_position)
-        //     force = G*((mass*other_mass) / distance*distance);
-        //     const acceleration = G*(mass/ distance*distance);
-        //     // vnew = vold + a*dt
-        // }
+        for (let j = 0; j < n; j++) {
+            if (j == i) {
+                continue;
+            }
+            const other_mass = masses[j];
+            const other_position = particles[j].position;
+            const distance = position.distanceTo(other_position)
+            const direction = new THREE.Vector3().subVectors(other_position, position).normalize();
+            const F = direction.multiplyScalar(G*((mass*other_mass) / Math.pow(distance, 3)));
+
+            force.add(F);
+            // const acceleration = G*(mass/ Math.pow(distance, 3));
+        }
+
+        velocities[i].add(force.multiplyScalar(dt));
 
         // Update position based on velocity
-        position.x += velocity_prev.x * dt;
-        position.y += velocity_prev.y * dt;
-        position.z += velocity_prev.z * dt;
+        position.addScaledVector(velocities[i], dt);
 
         // Check for boundary collision and reverse velocity if needed
-        if (position.x < -2 || position.x > 2) {
-            velocities[i].x *= -1;
-        }
-        if (position.y < -2 || position.y > 2) {
-            velocities[i].y *= -1;
-        }
-        if (position.z < -2 || position.z > 2) {
-            velocities[i].z *= -1;
-        }
+        // if (position.x < -2 || position.x > 2) {
+        //     velocities[i].x *= -1;
+        // }
+        // if (position.y < -2 || position.y > 2) {
+        //     velocities[i].y *= -1;
+        // }
+        // if (position.z < -2 || position.z > 2) {
+        //     velocities[i].z *= -1;
+        // }
 
         tree.add(particle.position.toArray());
     }
