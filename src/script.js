@@ -18,43 +18,46 @@ const G = 0.01
 
 // Lights
 const pointLight = new THREE.PointLight(0xffffff, 0.1)
-pointLight.position.x = 2
-pointLight.position.y = 3
-pointLight.position.z = 4
+pointLight.position.set(2, 3, 4)
 scene.add(pointLight)
 
 // Add particles
-const particleGeometry = new THREE.SphereGeometry( 0.1, 32 ); // Example particle geometry
+const particleGeometry = new THREE.SphereGeometry( 0.01, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
-const n = 2;
-const positions = new Float32Array(n * 3); // Store positions
-const velocities = new Float32Array(n * 3); // Store velocities
+const n = 200;
+const particles = []
+const positions = [] // Store positions
+const velocities = [] // Store velocities
 const masses = new Float32Array(n); // Store masses
 
 for (let i = 0; i < n; i++) {
     const particle = new THREE.Mesh(particleGeometry, particleMaterial);
 
     // Randomize position
-    particle.position.x = Math.random() * 4 - 2;
-    particle.position.y = Math.random() * 4 - 2;
-    particle.position.z = Math.random() * 4 - 2;
+    particle.position.set(
+        Math.random() * 4 - 2,
+        Math.random() * 4 - 2,
+        Math.random() * 4 - 2
+    )
+
+    particles.push(particle)
 
     // Randomize velocity
-    const vx = Math.random() * 0.2 - 0.01;
-    const vy = Math.random() * 0.2 - 0.01;
-    const vz = Math.random() * 0.2 - 0.01;
+    const velocity = new THREE.Vector3(
+        Math.random() * 0.2 - 0.01,
+        Math.random() * 0.2 - 0.01,
+        Math.random() * 0.2 - 0.01
+    )
 
-    velocities[i * 3] = vx;
-    velocities[i * 3 + 1] = vy;
-    velocities[i * 3 + 2] = vz;
+    velocities.push(velocity)
 
     // Assign mass (you can randomize this as well)
     masses[i] = Math.random() * 0.5 + 0.1; // Random mass between 0.1 and 0.6
 
     // Add particle to the scene
     scene.add(particle);
-    tree.add([particle.position.x, particle.position.y, particle.position.z])
+    tree.add(particle.position.toArray())
 }
 
 /**
@@ -112,21 +115,20 @@ function calculateDistance(position1, position2) {
 
 // Animate
 const clock = new THREE.Clock()
-
 const tick = () => {
     tree = d3o.octree()
     const dt = clock.getDelta();
     // Loop through each particle
     for (let i = 0; i < n; i++) {
         // Get current position and velocity of the particle
-        const particle = scene.children[i + 2];
+        const particle = particles[i];
         const position = particle.position;
         const mass = masses[i];
         let force;
         const velocity_prev = {
-            x: velocities[i * 3],
-            y: velocities[i * 3 + 1],
-            z: velocities[i * 3 + 2]
+            x: velocities[i].x,
+            y: velocities[i].y,
+            z: velocities[i].z
         };
         // for (let j = 0; j < n; j++) {
         //     if (j == i) {
@@ -147,20 +149,16 @@ const tick = () => {
 
         // Check for boundary collision and reverse velocity if needed
         if (position.x < -2 || position.x > 2) {
-            velocities[i * 3] *= -1;
+            velocities[i].x *= -1;
         }
         if (position.y < -2 || position.y > 2) {
-            velocities[i * 3 + 1] *= -1;
+            velocities[i].y *= -1;
         }
         if (position.z < -2 || position.z > 2) {
-            velocities[i * 3 + 2] *= -1;
+            velocities[i].z *= -1;
         }
 
-        // Update positions array for later use (optional)
-        positions[i * 3] = position.x;
-        positions[i * 3 + 1] = position.y;
-        positions[i * 3 + 2] = position.z;
-        tree.add([particle.position.x, particle.position.y, particle.position.z])
+        tree.add(particle.position.toArray());
     }
 
     // Update Orbital Controls
