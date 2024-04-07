@@ -22,7 +22,6 @@ pointLight.position.set(2, 3, 4)
 scene.add(pointLight)
 
 // Add particles
-const particleGeometry = new THREE.SphereGeometry( 0.05, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
 const n = 100;
@@ -31,8 +30,15 @@ const positions = [] // Store positions
 const velocities = [] // Store velocities
 const masses = new Float32Array(n); // Store masses
 
+const particleGeometry = (mass) => {
+    // Scale the radius based on the mass
+    const radius = mass * 0.1; // You can adjust the factor to fit your needs
+    return new THREE.SphereGeometry(radius, 32);
+};
+
 for (let i = 0; i < n; i++) {
-    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+    masses[i] = Math.random() * 0.5 + 0.1; // Random mass between 0.1 and 0.6
+    const particle = new THREE.Mesh(particleGeometry(masses[i]), particleMaterial);
 
     // Randomize position
     particle.position.set(
@@ -51,9 +57,6 @@ for (let i = 0; i < n; i++) {
     )
 
     velocities.push(velocity)
-
-    // Assign mass (you can randomize this as well)
-    masses[i] = Math.random() * 0.5 + 0.1; // Random mass between 0.1 and 0.6
 
     // Add particle to the scene
     scene.add(particle);
