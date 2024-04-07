@@ -14,6 +14,7 @@ let tree = d3o.octree()
 
 // Scene
 const scene = new THREE.Scene()
+const G = 0.01
 
 // Lights
 const pointLight = new THREE.PointLight(0xffffff, 0.1)
@@ -23,10 +24,10 @@ pointLight.position.z = 4
 scene.add(pointLight)
 
 // Add particles
-const particleGeometry = new THREE.SphereGeometry( 0.02, 32 ); // Example particle geometry
+const particleGeometry = new THREE.SphereGeometry( 0.1, 32 ); // Example particle geometry
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
-const n = 200;
+const n = 2;
 const positions = new Float32Array(n * 3); // Store positions
 const velocities = new Float32Array(n * 3); // Store velocities
 const masses = new Float32Array(n); // Store masses
@@ -101,27 +102,48 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+function calculateDistance(position1, position2) {
+    const dx = position2.x - position1.x;
+    const dy = position2.y - position1.y;
+    const dz = position2.z - position1.z;
+
+    return Math.sqrt(dx*dx + dy*dy + dz*dz);
+}
+
 // Animate
 const clock = new THREE.Clock()
 
 const tick = () => {
     tree = d3o.octree()
-    const deltaTime = clock.getDelta();
+    const dt = clock.getDelta();
     // Loop through each particle
     for (let i = 0; i < n; i++) {
         // Get current position and velocity of the particle
-        const particle = scene.children[i + 1]; // Adding 1 because the first child is the light
+        const particle = scene.children[i + 2];
         const position = particle.position;
-        const velocity = {
+        const mass = masses[i];
+        let force;
+        const velocity_prev = {
             x: velocities[i * 3],
             y: velocities[i * 3 + 1],
             z: velocities[i * 3 + 2]
         };
+        // for (let j = 0; j < n; j++) {
+        //     if (j == i) {
+        //         continue
+        //     }
+        //     const other_mass = masses[j];
+        //     const other_position = scene.children[j+2].position;
+        //     const distance = calculateDistance(position, other_position)
+        //     force = G*((mass*other_mass) / distance*distance);
+        //     const acceleration = G*(mass/ distance*distance);
+        //     // vnew = vold + a*dt
+        // }
 
         // Update position based on velocity
-        position.x += velocity.x * deltaTime;
-        position.y += velocity.y * deltaTime;
-        position.z += velocity.z * deltaTime;
+        position.x += velocity_prev.x * dt;
+        position.y += velocity_prev.y * dt;
+        position.z += velocity_prev.z * dt;
 
         // Check for boundary collision and reverse velocity if needed
         if (position.x < -2 || position.x > 2) {
