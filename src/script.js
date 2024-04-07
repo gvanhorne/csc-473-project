@@ -14,7 +14,7 @@ let tree = d3o.octree()
 
 // Scene
 const scene = new THREE.Scene()
-const G = 0.01
+const G = 1;
 
 // Lights
 const pointLight = new THREE.PointLight(0xffffff, 0.1)
@@ -26,8 +26,7 @@ const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Ex
 
 const n = 200;
 const particles = []
-const positions = [] // Store positions
-const velocities = [] // Store velocities
+let velocities = [] // Store velocities
 const masses = new Float32Array(n); // Store masses
 
 const particleGeometry = (mass) => {
@@ -112,13 +111,13 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const clock = new THREE.Clock()
 const tick = () => {
     tree = d3o.octree()
-    const dt = clock.getDelta();
+    const dt = 0.001;
+    const vi_t = []; // New velocities
+    const ri_t = []; // New positions
     // Loop through each particle
     for (let i = 0; i < n; i++) {
-        // Get current position and velocity of the particle
         const particle = particles[i];
         const position = particle.position;
-        const mass = masses[i];
         const netForce = new THREE.Vector3();
 
         for (let j = 0; j < n; j++) {
@@ -132,11 +131,25 @@ const tick = () => {
 
             netForce.add(F);
         }
+        netForce.multiplyScalar(-G);
 
-        velocities[i].add(netForce.multiplyScalar(G*-1));
+        // v_i(t) = F_i * dt * v_i(t0)
+        let Fi = netForce.clone();
+        let vi_t0 = velocities[i].clone();
+        vi_t.push(Fi.multiplyScalar(dt).add(vi_t0))
 
-        // Update position based on velocity
-        position.addScaledVector(velocities[i], dt);
+
+        // r_i(t) = 1/2*F_i * dt^2 + v_i(t0)*dt + r_i(t0)
+        Fi = netForce.clone();
+        vi_t0 = velocities[i].clone();
+        const ri_t0 = position.clone();
+        ri_t.push(Fi
+            .multiplyScalar(0.5)
+            .multiplyScalar(Math.pow(dt, 2))
+            .add(vi_t0.multiplyScalar(dt))
+            .add(ri_t0)
+        )
+
 
         // Check for boundary collision and reverse velocity if needed
         // if (position.x < -2 || position.x > 2) {
@@ -150,6 +163,17 @@ const tick = () => {
         // }
 
         tree.add(particle.position.toArray());
+    }
+
+    // Advance positions and velocities simultaneously for all particles
+    velocities = [];
+    for (let i = 0; i < n; i++) {
+        velocities.push(vi_t[i])
+        particles[i].position.set(
+            ri_t[i].x,
+            ri_t[i].y,
+            ri_t[i].z
+        )
     }
 
     // Update Orbital Controls
