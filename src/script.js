@@ -24,7 +24,7 @@ scene.add(pointLight)
 // Add particles
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
-const n = 100;
+const n = 200;
 const particles = []
 const positions = [] // Store positions
 const velocities = [] // Store velocities
@@ -32,7 +32,7 @@ const masses = new Float32Array(n); // Store masses
 
 const particleGeometry = (mass) => {
     // Scale the radius based on the mass
-    const radius = mass * 0.1; // You can adjust the factor to fit your needs
+    const radius = mass * 0.2; // You can adjust the factor to fit your needs
     return new THREE.SphereGeometry(radius, 32);
 };
 
@@ -119,27 +119,21 @@ const tick = () => {
         const particle = particles[i];
         const position = particle.position;
         const mass = masses[i];
-        let force = new THREE.Vector3();
-        const velocity_prev = {
-            x: velocities[i].x,
-            y: velocities[i].y,
-            z: velocities[i].z
-        };
+        const netForce = new THREE.Vector3();
+
         for (let j = 0; j < n; j++) {
             if (j == i) {
                 continue;
             }
-            const other_mass = masses[j];
-            const other_position = particles[j].position;
-            const distance = position.distanceTo(other_position)
-            const direction = new THREE.Vector3().subVectors(other_position, position).normalize();
-            const F = direction.multiplyScalar(G*((mass*other_mass) / Math.pow(distance, 3)));
+            const mj = masses[j];
+            const rj = particles[j].position.clone();
+            const ri = position.clone();
+            const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj)), 3))
 
-            force.add(F);
-            // const acceleration = G*(mass/ Math.pow(distance, 3));
+            netForce.add(F);
         }
 
-        velocities[i].add(force.multiplyScalar(dt));
+        velocities[i].add(netForce.multiplyScalar(G*-1));
 
         // Update position based on velocity
         position.addScaledVector(velocities[i], dt);
