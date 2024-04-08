@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
 import * as d3o from 'd3-octree'
 
+javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
 // Debug
 const gui = new dat.GUI()
 
@@ -150,19 +151,7 @@ const tick = () => {
             .add(ri_t0)
         )
 
-
-        // Check for boundary collision and reverse velocity if needed
-        // if (position.x < -2 || position.x > 2) {
-        //     velocities[i].x *= -1;
-        // }
-        // if (position.y < -2 || position.y > 2) {
-        //     velocities[i].y *= -1;
-        // }
-        // if (position.z < -2 || position.z > 2) {
-        //     velocities[i].z *= -1;
-        // }
-
-        tree.add(particle.position.toArray());
+        // tree.add(particle.position.toArray());
     }
 
     // Advance positions and velocities simultaneously for all particles
