@@ -15,7 +15,9 @@ let tree = d3o.octree()
 
 // Scene
 const scene = new THREE.Scene()
-const G = 1;
+let G = 1;
+let n = 200;
+let dt = 0.001
 
 // Lights
 const pointLight = new THREE.PointLight(0xffffff, 0.1)
@@ -25,7 +27,6 @@ scene.add(pointLight)
 // Add particles
 const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
 
-const n = 200;
 const particles = []
 let velocities = [] // Store velocities
 const masses = new Float32Array(n); // Store masses
@@ -108,11 +109,69 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+const parameters = {
+    G: 1,
+    n: 200,
+    dt: 0.001,
+    resetSimulation: resetSimulation
+};
+
+gui.add(parameters, 'G', 0, 2).step(0.01).onChange(() => {
+    G = parameters.G;
+});
+
+gui.add(parameters, 'n', 2, 200).step(1).onChange(() => {
+    resetSimulation(parameters.n);
+});
+
+gui.add(parameters, 'dt', 0.001, 0.1).step(0.001).onChange(() => {
+    dt = parameters.dt;
+});
+
+gui.add(parameters, 'resetSimulation');
+
+function resetSimulation(newN = n) {
+    // Clear previous particles
+    for (let i = 0; i < n; i++) {
+        scene.remove(particles[i]);
+    }
+    particles.length = 0;
+
+    // Reset arrays
+    velocities.length = 0;
+    masses.fill(0);
+
+    // Update particle count
+    n = newN;
+
+    // Add new particles
+    for (let i = 0; i < n; i++) {
+        // Generate new random masses and velocities
+        masses[i] = Math.random() * 0.5 + 0.1;
+        const velocity = new THREE.Vector3(
+            Math.random() * 0.2 - 0.01,
+            Math.random() * 0.2 - 0.01,
+            Math.random() * 0.2 - 0.01
+        );
+        velocities.push(velocity);
+
+        // Create new particle mesh
+        const particle = new THREE.Mesh(particleGeometry(masses[i]), particleMaterial);
+        particle.position.set(
+            Math.random() * 4 - 2,
+            Math.random() * 4 - 2,
+            Math.random() * 4 - 2
+        );
+        particles.push(particle);
+        scene.add(particle);
+        tree.add(particle.position.toArray());
+    }
+}
+
 // Animate
 const clock = new THREE.Clock()
 const tick = () => {
     tree = d3o.octree()
-    const dt = 0.001;
     const vi_t = []; // New velocities
     const ri_t = []; // New positions
     // Loop through each particle
