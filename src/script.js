@@ -18,14 +18,15 @@ const scene = new THREE.Scene()
 let G = 1;
 let n = 200;
 let dt = 0.001
+let isPaused = false;
 
 // Lights
-const pointLight = new THREE.PointLight(0xffffff, 0.1)
+const pointLight = new THREE.PointLight(0xffffff, 1)
 pointLight.position.set(2, 3, 4)
 scene.add(pointLight)
 
 // Add particles
-const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Example particle material
+const particleMaterial = new THREE.MeshNormalMaterial(); // Example particle material
 
 const particles = []
 let velocities = [] // Store velocities
@@ -34,7 +35,7 @@ const masses = new Float32Array(n); // Store masses
 const particleGeometry = (mass) => {
     // Scale the radius based on the mass
     const radius = mass * 0.2; // You can adjust the factor to fit your needs
-    return new THREE.SphereGeometry(radius, 32);
+    return new THREE.SphereGeometry(radius, 128);
 };
 
 for (let i = 0; i < n; i++) {
@@ -113,7 +114,8 @@ const parameters = {
     G: 1,
     n: 200,
     dt: 0.001,
-    resetSimulation: resetSimulation
+    resetSimulation: resetSimulation,
+    toggleSimulation: toggleSimulation
 };
 
 gui.add(parameters, 'G', 0, 2).step(0.01).onChange(() => {
@@ -129,6 +131,19 @@ gui.add(parameters, 'dt', 0.001, 0.1).step(0.001).onChange(() => {
 });
 
 gui.add(parameters, 'resetSimulation');
+
+gui.add(parameters, 'toggleSimulation');
+
+// Function to toggle simulation state
+function toggleSimulation() {
+    if (isPaused) {
+        // Resume animation loop
+        isPaused = false;
+    } else {
+        // Pause animation loop
+        isPaused = true;
+    }
+}
 
 function resetSimulation(newN = n) {
     // Clear previous particles
@@ -175,53 +190,56 @@ const tick = () => {
     const vi_t = []; // New velocities
     const ri_t = []; // New positions
     // Loop through each particle
-    for (let i = 0; i < n; i++) {
-        const particle = particles[i];
-        const position = particle.position;
-        const netForce = new THREE.Vector3();
+    if (!isPaused) {
 
-        for (let j = 0; j < n; j++) {
-            if (j == i) {
-                continue;
+        for (let i = 0; i < n; i++) {
+            const particle = particles[i];
+            const position = particle.position;
+            const netForce = new THREE.Vector3();
+
+            for (let j = 0; j < n; j++) {
+                if (j == i) {
+                    continue;
+                }
+                const mj = masses[j];
+                const rj = particles[j].position.clone();
+                const ri = position.clone();
+                const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj)), 3))
+
+                netForce.add(F);
             }
-            const mj = masses[j];
-            const rj = particles[j].position.clone();
-            const ri = position.clone();
-            const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj)), 3))
+            netForce.multiplyScalar(-G);
 
-            netForce.add(F);
+            // v_i(t) = F_i * dt * v_i(t0)
+            let Fi = netForce.clone();
+            let vi_t0 = velocities[i].clone();
+            vi_t.push(Fi.multiplyScalar(dt).add(vi_t0))
+
+
+            // r_i(t) = 1/2*F_i * dt^2 + v_i(t0)*dt + r_i(t0)
+            Fi = netForce.clone();
+            vi_t0 = velocities[i].clone();
+            const ri_t0 = position.clone();
+            ri_t.push(Fi
+                .multiplyScalar(0.5)
+                .multiplyScalar(Math.pow(dt, 2))
+                .add(vi_t0.multiplyScalar(dt))
+                .add(ri_t0)
+            )
+
+            // tree.add(particle.position.toArray());
         }
-        netForce.multiplyScalar(-G);
 
-        // v_i(t) = F_i * dt * v_i(t0)
-        let Fi = netForce.clone();
-        let vi_t0 = velocities[i].clone();
-        vi_t.push(Fi.multiplyScalar(dt).add(vi_t0))
-
-
-        // r_i(t) = 1/2*F_i * dt^2 + v_i(t0)*dt + r_i(t0)
-        Fi = netForce.clone();
-        vi_t0 = velocities[i].clone();
-        const ri_t0 = position.clone();
-        ri_t.push(Fi
-            .multiplyScalar(0.5)
-            .multiplyScalar(Math.pow(dt, 2))
-            .add(vi_t0.multiplyScalar(dt))
-            .add(ri_t0)
-        )
-
-        // tree.add(particle.position.toArray());
-    }
-
-    // Advance positions and velocities simultaneously for all particles
-    velocities = [];
-    for (let i = 0; i < n; i++) {
-        velocities.push(vi_t[i])
-        particles[i].position.set(
-            ri_t[i].x,
-            ri_t[i].y,
-            ri_t[i].z
-        )
+        // Advance positions and velocities simultaneously for all particles
+        velocities = [];
+        for (let i = 0; i < n; i++) {
+            velocities.push(vi_t[i])
+            particles[i].position.set(
+                ri_t[i].x,
+                ri_t[i].y,
+                ri_t[i].z
+            )
+        }
     }
 
     // Update Orbital Controls
