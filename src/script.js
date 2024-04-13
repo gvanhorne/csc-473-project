@@ -29,7 +29,7 @@ const particleMaterial = new THREE.MeshNormalMaterial(); // Example particle mat
 
 const particles = []
 let velocities = [] // Store velocities
-const masses = new Float32Array(n); // Store masses
+let masses = new Float32Array(n); // Store masses
 
 const particleGeometry = (mass) => {
     // Scale the radius based on the mass
@@ -115,7 +115,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 const parameters = {
     G: 1,
-    n: 200,
+    n: 500,
     dt: 0.001,
     resetSimulation: resetSimulation,
     toggleSimulation: toggleSimulation
@@ -125,7 +125,7 @@ gui.add(parameters, 'G', 0, 2).step(0.01).onChange(() => {
     G = parameters.G;
 });
 
-gui.add(parameters, 'n', 2, 200).step(1).onChange(() => {
+gui.add(parameters, 'n', 2, 1000).step(1).onChange(() => {
     resetSimulation(parameters.n);
 });
 
@@ -157,6 +157,8 @@ function resetSimulation(newN = n) {
 
     // Reset arrays
     velocities.length = 0;
+
+    masses = new Float32Array(newN); // Store masses
 
     // Update particle count
     n = newN;
