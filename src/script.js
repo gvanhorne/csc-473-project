@@ -17,7 +17,7 @@ let tree = d3o.octree()
 const scene = new THREE.Scene()
 let G = 1;
 let n = 500;
-let dt = 0.001
+let dt = 0.1
 let isPaused = false;
 
 // Lights
@@ -33,7 +33,7 @@ let masses = new Float32Array(n); // Store masses
 
 const particleGeometry = (mass) => {
     // Scale the radius based on the mass
-    const radius = mass * 10; // You can adjust the factor to fit your needs
+    const radius = 0.025; // You can adjust the factor to fit your needs
     return new THREE.SphereGeometry(radius, 32);
 };
 
@@ -116,7 +116,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const parameters = {
     G: 1,
     n: 500,
-    dt: 0.001,
+    dt: 0.1,
     resetSimulation: resetSimulation,
     toggleSimulation: toggleSimulation
 };
@@ -129,7 +129,7 @@ gui.add(parameters, 'n', 2, 1000).step(1).onChange(() => {
     resetSimulation(parameters.n);
 });
 
-gui.add(parameters, 'dt', 0.001, 0.1).step(0.001).onChange(() => {
+gui.add(parameters, 'dt', 0.1, 2.0).step(0.1).onChange(() => {
     dt = parameters.dt;
 });
 
@@ -166,9 +166,12 @@ function resetSimulation(newN = n) {
     init_bodies();
 }
 
+let firstIter = 1;
+let prevForcePerMass = [];
 // Animate
 const clock = new THREE.Clock()
 const tick = () => {
+    let deltaT = clock.getDelta()
     tree = d3o.octree()
     const vi_t = []; // New velocities
     const ri_t = []; // New positions
@@ -187,7 +190,7 @@ const tick = () => {
                 const mj = masses[j];
                 const rj = particles[j].position.clone();
                 const ri = position.clone();
-                const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj)), 3))
+                const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj) + 0.001), 3))
 
                 netForce.add(F);
             }
@@ -196,22 +199,23 @@ const tick = () => {
             // v_i(t) = F_i * dt * v_i(t0)
             let Fi = netForce.clone();
             let vi_t0 = velocities[i].clone();
-            vi_t.push(Fi.multiplyScalar(dt).add(vi_t0))
+            vi_t.push(Fi.multiplyScalar(dt*deltaT).add(vi_t0))
 
 
             // r_i(t) = 1/2*F_i * dt^2 + v_i(t0)*dt + r_i(t0)
             Fi = netForce.clone();
-            vi_t0 = velocities[i].clone();
             const ri_t0 = position.clone();
             ri_t.push(Fi
                 .multiplyScalar(0.5)
-                .multiplyScalar(Math.pow(dt, 2))
-                .add(vi_t0.multiplyScalar(dt))
+                .multiplyScalar(Math.pow(dt*deltaT, 2))
+                .add(vi_t0.multiplyScalar(dt*deltaT))
                 .add(ri_t0)
             )
 
             // tree.add(particle.position.toArray());
         }
+        firstIter = 0;
+
 
         // Advance positions and velocities simultaneously for all particles
         velocities = [];
