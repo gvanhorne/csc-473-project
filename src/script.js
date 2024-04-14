@@ -166,8 +166,6 @@ function resetSimulation(newN = n) {
     init_bodies();
 }
 
-let firstIter = 1;
-let prevForcePerMass = [];
 // Animate
 const clock = new THREE.Clock()
 const tick = () => {
@@ -190,7 +188,7 @@ const tick = () => {
                 const mj = masses[j];
                 const rj = particles[j].position.clone();
                 const ri = position.clone();
-                const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj) + 0.001), 3))
+                const F = (ri.sub(rj)).multiplyScalar(mj).divideScalar(Math.pow((ri.distanceTo(rj)), 3) + Math.pow(0.0001, 3))
 
                 netForce.add(F);
             }
@@ -214,8 +212,6 @@ const tick = () => {
 
             // tree.add(particle.position.toArray());
         }
-        firstIter = 0;
-
 
         // Advance positions and velocities simultaneously for all particles
         velocities = [];
